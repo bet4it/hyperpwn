@@ -1,0 +1,38 @@
+{
+  "name": "hyperpwn",
+  "version": "0.0.1",
+  "description": "Build a pwn environment on hyper",
+  "repository": "bet4it/hyperpwn",
+  "author": "Bet4 <0xbet4@gmail.com>",
+  "license": "MIT",
+  "bin": {},
+  "keywords": [
+    "hyper"
+  ],
+  "scripts": {
+    "test": "xo"
+  },
+  "xo": {
+    "esnext": true,
+    "space": true,
+    "semicolon": false,
+    "rules": {
+      "padding-line-between-statements": [
+        "error",
+        {
+          "blankLine": "any",
+          "prev": "multiline-block-like",
+          "next": "*"
+        }
+      ]
+    },
+    "env": [
+      "node",
+      "browser"
+    ]
+  },
+  "devDependencies": {
+    "xo": "^0.24.0"
+  },
+  "dependencies": {}
+}
