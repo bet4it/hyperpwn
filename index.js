@@ -1,32 +1,32 @@
+const {homedir} = require('os')
+const {resolve} = require('path')
+const stripAnsi = require('strip-ansi')
+
 let hyperpwn
+let contextStart
+let contextData
+const viewUids = {}
+const clearSeq = '\u001B[3J\u001B[H\u001B[2J'
 
 class Hyperpwn {
-  constructor(store) {
-    this.store = store
+  constructor() {
     this.index = null
     this.records = {}
-    this.cachedData = null
     this.replayPrev = this.replayPrev.bind(this)
     this.replayNext = this.replayNext.bind(this)
   }
 
-  get splitSeq() {
-    return '\u001b[3J\u001b[H\u001b[2J'
+  addUid(uid) {
+    this.records[uid] = []
   }
 
-  addData(data) {
-    this.cachedData = data
+  addData(uid, data) {
+    this.records[uid].push(data)
+    this.index = this.records[uid].length - 1
   }
 
-  ptyData(uid, data) {
-    if (!(uid in this.records)) {
-      this.records[uid] = []
-    }
-    if (data === this.cachedData) {
-      this.records[uid].push(data)
-      this.index = this.records[uid].length - 1
-    }
-    this.cachedData = null
+  setStore(store) {
+    this.store = store
   }
 
   checkRecordLength() {
@@ -35,37 +35,106 @@ class Hyperpwn {
     if (lens.every(len => len === first)) {
       return first
     }
+    return null
   }
 
-  replayPrev(e) {
+  loadLayout(name) {
+    this.store.dispatch({
+      type: 'HYPERINATOR_LOAD',
+      data: resolve(homedir(), '.hyperinator', `hyperpwn-${name}.yml`)
+    })
+  }
+
+  replay() {
+    Object.keys(this.records).forEach(uid => {
+      this.store.dispatch({
+        type: 'SESSION_PTY_DATA',
+        uid,
+        data: this.records[uid][this.index]
+      })
+    })
+  }
+
+  replayPrev() {
     const len = this.checkRecordLength()
     if (len && this.index > 0 && this.index < len) {
       this.index -= 1
-      Object.keys(this.records).forEach(uid => {
-        store.dispatch({
-          type: 'SESSION_PTY_DATA',
-          uid,
-          data: this.records[uid][this.index],
-          now: Date.now()
-        })
-      })
+      this.replay()
     }
   }
 
-  replayNext(e) {
+  replayNext() {
     const len = this.checkRecordLength()
     if (len && this.index < len - 1) {
       this.index += 1
-      Object.keys(this.records).forEach(uid => {
-        store.dispatch({
-          type: 'SESSION_PTY_DATA',
-          uid,
-          data: this.records[uid][this.index],
-          now: Date.now()
-        })
-      })
+      this.replay()
     }
   }
+
+  replayLast() {
+    const len = this.checkRecordLength()
+    if (len) {
+      this.index = len - 1
+      this.replay()
+    }
+  }
+}
+
+exports.middleware = store => next => action => {
+  const {type, data, uid} = action
+
+  if (type === 'SESSION_ADD_DATA') {
+    const strippedData = stripAnsi(data)
+    if (strippedData.includes('GEF for linux ready')) {
+      hyperpwn.setStore(store)
+      hyperpwn.loadLayout('gef')
+    }
+  }
+
+  if (type === 'SESSION_PTY_DATA') {
+    const view = /^ hyperpwn (.*)\r\n\r\n$/.exec(data)
+    if (view) {
+      viewUids[view[1]] = uid
+      hyperpwn.addUid(uid)
+    }
+
+    if (contextStart) {
+      const end = /^(\u001B\[\d+m)*─+(\u001B\[\d+m)*$/m.exec(data)
+      if (end) {
+        action.data = ''
+        contextStart = false
+        contextData += data.substr(0, end.index)
+        const parts = contextData.split(/(^.*─.*$)/mg).slice(1)
+        for (let i = 0; i < parts.length; i += 2) {
+          let found = false
+          Object.keys(viewUids).forEach(v => {
+            if (parts[i].includes(v)) {
+              const disp = parts[i + 1].substr(2, parts[i + 1].length - 4)
+              hyperpwn.addData(viewUids[v], clearSeq + disp)
+              found = true
+            }
+          })
+          if (!found) {
+            action.data += parts[i] + parts[i + 1]
+          }
+        }
+        hyperpwn.replayLast()
+        action.data += data.substr(end.index + end[0].length)
+      } else {
+        contextData += data
+        return
+      }
+    }
+
+    const legend = /^\[ Legend:.* \]$/m.exec(data)
+    if (legend) {
+      contextStart = true
+      contextData = data.substr(legend.index + legend[0].length)
+      action.data = data.substr(0, legend.index)
+    }
+  }
+
+  next(action)
 }
 
 exports.decorateKeymaps = keymaps => {
@@ -76,22 +145,6 @@ exports.decorateKeymaps = keymaps => {
   return Object.assign({}, keymaps, newKeymaps)
 }
 
-exports.middleware = store => next => action => {
-  const {type, data, uid} = action
-
-  if (type === 'SESSION_ADD_DATA') {
-    if (data.startsWith(hyperpwn.splitSeq)) {
-      hyperpwn.addData(data)
-    }
-  }
-  if (type === 'SESSION_PTY_DATA') {
-    if (data.startsWith(hyperpwn.splitSeq)) {
-      hyperpwn.ptyData(uid, data)
-    }
-  }
-  next(action)
-}
-
 exports.decorateTerms = (Terms, {React}) => {
   return class extends React.Component {
     constructor(props, context) {
@@ -99,7 +152,7 @@ exports.decorateTerms = (Terms, {React}) => {
       this.onDecorated = this.onDecorated.bind(this)
       this.terms = null
 
-      hyperpwn = new Hyperpwn(store)
+      hyperpwn = new Hyperpwn()
     }
 
     onDecorated(terms) {

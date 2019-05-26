@@ -17,6 +17,8 @@
     "space": true,
     "semicolon": false,
     "rules": {
+      "max-depth": "off",
+      "no-control-regex": "off",
       "padding-line-between-statements": [
         "error",
         {
@@ -34,5 +36,7 @@
   "devDependencies": {
     "xo": "^0.24.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "strip-ansi": "^5.2.0"
+  }
 }
