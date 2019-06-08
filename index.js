@@ -1,12 +1,14 @@
 const {homedir} = require('os')
 const {resolve} = require('path')
 const stripAnsi = require('strip-ansi')
+const expandTabs = require('expandtabs')
+const cliTruncate = require('cli-truncate')
+const ansiEscapes = require('ansi-escapes')
 
 let hyperpwn
 let contextStart
 let contextData
 const viewUids = {}
-const clearSeq = '\u001B[3J\u001B[H\u001B[2J'
 
 class Hyperpwn {
   constructor() {
@@ -47,10 +49,14 @@ class Hyperpwn {
 
   replay() {
     Object.keys(this.records).forEach(uid => {
+      const {cols} = this.store.getState().sessions.sessions[uid]
+      let data = this.records[uid][this.index]
+      data = data.replace(/^.*$/mg, line => cliTruncate(expandTabs(line), cols))
+      data = ansiEscapes.clearScreen + ansiEscapes.cursorHide + data
       this.store.dispatch({
         type: 'SESSION_PTY_DATA',
         uid,
-        data: this.records[uid][this.index]
+        data
       })
     })
   }
@@ -96,21 +102,34 @@ exports.middleware = store => next => action => {
     if (view) {
       viewUids[view[1]] = uid
       hyperpwn.addUid(uid)
+      action.data = ansiEscapes.cursorHide
     }
 
     if (contextStart) {
-      const end = /^(\u001B\[\d+m)*─+(\u001B\[\d+m)*$/m.exec(data)
+      action.data = ''
+      contextData += data
+    }
+
+    const legend = /^\[ Legend:.* \]$/m.exec(data)
+    if (legend) {
+      contextStart = true
+      action.data = data.substr(0, legend.index)
+      contextData = data.substr(legend.index + legend[0].length)
+    }
+
+    if (contextStart) {
+      const end = /\r\n(\u001B\[[^m]*m)*─+(\u001B\[[^m]*m)*\r\n/.exec(contextData)
       if (end) {
-        action.data = ''
         contextStart = false
-        contextData += data.substr(0, end.index)
+        const tailData = contextData.substr(end.index + end[0].length)
+        contextData = contextData.substr(0, end.index)
         const parts = contextData.split(/(^.*─.*$)/mg).slice(1)
         for (let i = 0; i < parts.length; i += 2) {
           let found = false
           Object.keys(viewUids).forEach(v => {
             if (parts[i].includes(v)) {
               const disp = parts[i + 1].substr(2, parts[i + 1].length - 4)
-              hyperpwn.addData(viewUids[v], clearSeq + disp)
+              hyperpwn.addData(viewUids[v], disp)
               found = true
             }
           })
@@ -119,18 +138,11 @@ exports.middleware = store => next => action => {
           }
         }
         hyperpwn.replayLast()
-        action.data += data.substr(end.index + end[0].length)
-      } else {
-        contextData += data
+        action.data += tailData
+      }
+      if (!action.data) {
         return
       }
-    }
-
-    const legend = /^\[ Legend:.* \]$/m.exec(data)
-    if (legend) {
-      contextStart = true
-      contextData = data.substr(legend.index + legend[0].length)
-      action.data = data.substr(0, legend.index)
     }
   }
 

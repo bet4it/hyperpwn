@@ -37,6 +37,9 @@
     "xo": "^0.24.0"
   },
   "dependencies": {
+    "ansi-escapes": "^4.1.0",
+    "cli-truncate": "^1.1.0",
+    "expandtabs": "^1.0.0",
     "strip-ansi": "^5.2.0"
   }
 }
