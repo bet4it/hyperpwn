@@ -1,5 +1,6 @@
 const {homedir} = require('os')
 const {resolve} = require('path')
+const merge = require('lodash.merge')
 const stripAnsi = require('strip-ansi')
 const expandTabs = require('expandtabs')
 const cliTruncate = require('cli-truncate')
@@ -8,7 +9,23 @@ const ansiEscapes = require('ansi-escapes')
 let hyperpwn
 let contextStart
 let contextData
-const viewUids = {}
+const uidViews = {}
+
+const defaultConfig = {
+  hotkeys: {
+    prev: 'ctrl+shift+pageup',
+    next: 'ctrl+shift+pagedown'
+  },
+  showHeaders: true,
+  headerStyle: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    fontSize: '10px'
+  }
+}
+
+let config = defaultConfig
 
 class Hyperpwn {
   constructor() {
@@ -89,6 +106,12 @@ class Hyperpwn {
 exports.middleware = store => next => action => {
   const {type, data, uid} = action
 
+  if (type === 'CONFIG_LOAD' || type === 'CONFIG_RELOAD') {
+    if (action.config.hyperpwn) {
+      config = merge(JSON.parse(JSON.stringify(defaultConfig)), action.config.hyperpwn)
+    }
+  }
+
   if (type === 'SESSION_ADD_DATA') {
     const strippedData = stripAnsi(data)
     if (strippedData.includes('GEF for linux ready')) {
@@ -100,7 +123,7 @@ exports.middleware = store => next => action => {
   if (type === 'SESSION_PTY_DATA') {
     const view = /^ hyperpwn (.*)\r\n\r\n$/.exec(data)
     if (view) {
-      viewUids[view[1]] = uid
+      uidViews[uid] = view[1]
       hyperpwn.addUid(uid)
       action.data = ansiEscapes.cursorHide
     }
@@ -126,10 +149,10 @@ exports.middleware = store => next => action => {
         const parts = contextData.split(/(^.*─.*$)/mg).slice(1)
         for (let i = 0; i < parts.length; i += 2) {
           let found = false
-          Object.keys(viewUids).forEach(v => {
-            if (parts[i].includes(v)) {
+          Object.keys(uidViews).forEach(uid => {
+            if (parts[i].includes(uidViews[uid])) {
               const disp = parts[i + 1].substr(2, parts[i + 1].length - 4)
-              hyperpwn.addData(viewUids[v], disp)
+              hyperpwn.addData(uid, disp)
               found = true
             }
           })
@@ -149,10 +172,17 @@ exports.middleware = store => next => action => {
   next(action)
 }
 
+exports.decorateConfig = mainConfig => {
+  if (mainConfig.hyperpwn) {
+    config = merge(JSON.parse(JSON.stringify(defaultConfig)), mainConfig.hyperpwn)
+  }
+  return mainConfig
+}
+
 exports.decorateKeymaps = keymaps => {
   const newKeymaps = {
-    'pwn:replayprev': 'ctrl+shift+pageup',
-    'pwn:replaynext': 'ctrl+shift+pagedown'
+    'pwn:replayprev': config.hotkeys.prev,
+    'pwn:replaynext': config.hotkeys.next
   }
   return Object.assign({}, keymaps, newKeymaps)
 }
@@ -188,6 +218,37 @@ exports.decorateTerms = (Terms, {React}) => {
           onDecorated: this.onDecorated
         })
       )
+    }
+  }
+}
+
+exports.decorateTerm = (Term, {React}) => {
+  return class extends React.Component {
+    render() {
+      const props = {}
+
+      let header
+      if (config.showHeaders && this.props.uid in uidViews) {
+        header = `[${uidViews[this.props.uid]}]`
+      }
+
+      if (!header) {
+        return React.createElement(Term, Object.assign({}, this.props, props))
+      }
+
+      const myCustomChildrenBefore = React.createElement(
+        'div',
+        {
+          key: 'pwn',
+          style: config.headerStyle
+        },
+        header
+      )
+      const customChildrenBefore = this.props.customChildrenBefore ?
+        new Array(this.props.customChildrenBefore).concat(myCustomChildrenBefore) :
+        myCustomChildrenBefore
+      props.customChildrenBefore = customChildrenBefore
+      return React.createElement(Term, Object.assign({}, this.props, props))
     }
   }
 }
