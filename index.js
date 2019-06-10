@@ -64,9 +64,8 @@ class Hyperpwn {
     })
   }
 
-  replay() {
-    Object.keys(this.records).forEach(uid => {
-      const {cols} = this.store.getState().sessions.sessions[uid]
+  replayUid(uid, cols) {
+    if (uid in this.records && Number.isInteger(this.index)) {
       let data = this.records[uid][this.index]
       data = data.replace(/^.*$/mg, line => cliTruncate(expandTabs(line), cols))
       data = ansiEscapes.clearScreen + ansiEscapes.cursorHide + data
@@ -75,6 +74,13 @@ class Hyperpwn {
         uid,
         data
       })
+    }
+  }
+
+  replay() {
+    Object.keys(this.records).forEach(uid => {
+      const {cols} = this.store.getState().sessions.sessions[uid]
+      this.replayUid(uid, cols)
     })
   }
 
@@ -104,7 +110,7 @@ class Hyperpwn {
 }
 
 exports.middleware = store => next => action => {
-  const {type, data, uid} = action
+  const {type} = action
 
   if (type === 'CONFIG_LOAD' || type === 'CONFIG_RELOAD') {
     if (action.config.hyperpwn) {
@@ -113,6 +119,7 @@ exports.middleware = store => next => action => {
   }
 
   if (type === 'SESSION_ADD_DATA') {
+    const {data} = action
     const strippedData = stripAnsi(data)
     if (strippedData.includes('GEF for linux ready')) {
       hyperpwn.setStore(store)
@@ -121,6 +128,7 @@ exports.middleware = store => next => action => {
   }
 
   if (type === 'SESSION_PTY_DATA') {
+    const {data, uid} = action
     const view = /^ hyperpwn (.*)\r\n\r\n$/.exec(data)
     if (view) {
       uidViews[uid] = view[1]
@@ -167,6 +175,10 @@ exports.middleware = store => next => action => {
         return
       }
     }
+  }
+
+  if (type === 'SESSION_RESIZE') {
+    hyperpwn.replayUid(action.uid, action.cols)
   }
 
   next(action)
