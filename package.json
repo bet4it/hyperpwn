@@ -5,6 +5,9 @@
   "repository": "bet4it/hyperpwn",
   "author": "Bet4 <0xbet4@gmail.com>",
   "license": "MIT",
+  "files": [
+    "cfgs"
+  ],
   "bin": {},
   "keywords": [
     "hyper"
@@ -40,6 +43,7 @@
     "ansi-escapes": "^4.1.0",
     "cli-truncate": "^1.1.0",
     "expandtabs": "^1.0.0",
+    "fs-extra": "^8.0.1",
     "lodash.merge": "^4.6.1",
     "strip-ansi": "^5.2.0"
   }

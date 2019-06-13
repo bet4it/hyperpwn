@@ -1,5 +1,6 @@
 const {homedir} = require('os')
 const {resolve} = require('path')
+const {copySync} = require('fs-extra')
 const merge = require('lodash.merge')
 const stripAnsi = require('strip-ansi')
 const expandTabs = require('expandtabs')
@@ -58,9 +59,12 @@ class Hyperpwn {
   }
 
   loadLayout(name) {
+    const cfgName = `hyperpwn-${name}.yml`
+    const cfgPath = resolve(homedir(), '.hyperinator', cfgName)
+    copySync(resolve(__dirname, 'cfgs', cfgName), cfgPath, {overwrite: false})
     this.store.dispatch({
       type: 'HYPERINATOR_LOAD',
-      data: resolve(homedir(), '.hyperinator', `hyperpwn-${name}.yml`)
+      data: cfgPath
     })
   }
 
