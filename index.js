@@ -129,6 +129,10 @@ exports.middleware = store => next => action => {
       hyperpwn.setStore(store)
       hyperpwn.loadLayout('gef')
     }
+    if (strippedData.includes('pwndbg: loaded ')) {
+      hyperpwn.setStore(store)
+      hyperpwn.loadLayout('pwndbg')
+    }
   }
 
   if (type === 'SESSION_PTY_DATA') {
@@ -145,7 +149,7 @@ exports.middleware = store => next => action => {
       contextData += data
     }
 
-    const legend = /^\[ Legend:.* \]$/m.exec(data)
+    const legend = /^(\[ )?legend:/im.exec(data)
     if (legend) {
       contextStart = true
       action.data = data.substr(0, legend.index)
