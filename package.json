@@ -1,6 +1,6 @@
 {
   "name": "hyperpwn",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Build a pwn environment on hyper",
   "repository": "bet4it/hyperpwn",
   "author": "Bet4 <0xbet4@gmail.com>",
