@@ -10,7 +10,6 @@ const ansiEscapes = require('ansi-escapes')
 let hyperpwn
 let contextStart
 let contextData
-const uidViews = {}
 
 const defaultConfig = {
   hotkeys: {
@@ -36,13 +35,33 @@ class Hyperpwn {
     this.replayNext = this.replayNext.bind(this)
   }
 
-  addUid(uid) {
+  addUid(uid, name) {
     this.records[uid] = []
+    this.records[uid].name = name
   }
 
-  addData(uid, data) {
-    this.records[uid].push(data)
-    this.index = this.records[uid].length - 1
+  delUid(uid) {
+    delete this.records[uid]
+    if (this.records.length === 0) {
+      this.index = null
+    }
+  }
+
+  addData(uid, title, data) {
+    return Object.keys(this.records).some(uid => {
+      if (title.includes(this.records[uid].name)) {
+        this.records[uid].push(data)
+        this.index = this.records[uid].length - 1
+        return true
+      }
+      return false
+    })
+  }
+
+  uidHeader(uid) {
+    if (uid in this.records) {
+      return `[${this.records[uid].name}]`
+    }
   }
 
   setStore(store) {
@@ -72,7 +91,7 @@ class Hyperpwn {
     if (uid in this.records && Number.isInteger(this.index)) {
       let data = this.records[uid][this.index]
       data = data.replace(/^.*$/mg, line => cliTruncate(expandTabs(line), cols))
-      data = ansiEscapes.clearScreen + ansiEscapes.cursorHide + data
+      data = ansiEscapes.clearTerminal + data
       this.store.dispatch({
         type: 'SESSION_PTY_DATA',
         uid,
@@ -139,8 +158,7 @@ exports.middleware = store => next => action => {
     const {data, uid} = action
     const view = /^ hyperpwn (.*)\r\n\r\n$/.exec(data)
     if (view) {
-      uidViews[uid] = view[1]
-      hyperpwn.addUid(uid)
+      hyperpwn.addUid(uid, view[1])
       action.data = ansiEscapes.cursorHide
     }
 
@@ -159,24 +177,22 @@ exports.middleware = store => next => action => {
     if (contextStart) {
       const end = /\r\n(\u001B\[[^m]*m)*─+(\u001B\[[^m]*m)*\r\n/.exec(contextData)
       if (end) {
+        let endDisp = false
         contextStart = false
         const tailData = contextData.substr(end.index + end[0].length)
-        contextData = contextData.substr(0, end.index)
+        contextData = contextData.substr(0, end.index + 2)
         const parts = contextData.split(/(^.*─.*$)/mg).slice(1)
         for (let i = 0; i < parts.length; i += 2) {
-          let found = false
-          Object.keys(uidViews).forEach(uid => {
-            if (parts[i].includes(uidViews[uid])) {
-              const disp = parts[i + 1].substr(2, parts[i + 1].length - 4)
-              hyperpwn.addData(uid, disp)
-              found = true
-            }
-          })
-          if (!found) {
+          if (!hyperpwn.addData(uid, parts[i], parts[i + 1].slice(2, -2))) {
             action.data += parts[i] + parts[i + 1]
+            endDisp = true
           }
         }
         hyperpwn.replayLast()
+
+        if (endDisp) {
+          action.data += end[0].substr(2)
+        }
         action.data += tailData
       }
       if (!action.data) {
@@ -187,6 +203,10 @@ exports.middleware = store => next => action => {
 
   if (type === 'SESSION_RESIZE') {
     hyperpwn.replayUid(action.uid, action.cols)
+  }
+
+  if (type === 'SESSION_PTY_EXIT') {
+    hyperpwn.delUid(action.uid)
   }
 
   next(action)
@@ -248,8 +268,8 @@ exports.decorateTerm = (Term, {React}) => {
       const props = {}
 
       let header
-      if (config.showHeaders && this.props.uid in uidViews) {
-        header = `[${uidViews[this.props.uid]}]`
+      if (config.showHeaders) {
+        header = hyperpwn.uidHeader(this.props.uid)
       }
 
       if (!header) {
