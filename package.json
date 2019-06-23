@@ -41,8 +41,8 @@
     "xo": "^0.24.0"
   },
   "dependencies": {
-    "ansi-escapes": "^4.1.0",
-    "cli-truncate": "^1.1.0",
+    "ansi-escapes": "^4.2.0",
+    "cli-truncate": "github:bet4it/cli-truncate",
     "expandtabs": "^1.0.0",
     "fs-extra": "^8.0.1",
     "lodash.merge": "^4.6.1",
