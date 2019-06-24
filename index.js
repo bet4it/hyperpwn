@@ -42,7 +42,7 @@ class Hyperpwn {
 
   delUid(uid) {
     delete this.records[uid]
-    if (this.records.length === 0) {
+    if (Object.keys(this.records).length === 0) {
       this.index = null
     }
   }
@@ -78,13 +78,15 @@ class Hyperpwn {
   }
 
   loadLayout(name) {
-    const cfgName = `hyperpwn-${name}.yml`
-    const cfgPath = resolve(homedir(), '.hyperinator', cfgName)
-    copySync(resolve(__dirname, 'cfgs', cfgName), cfgPath, {overwrite: false})
-    this.store.dispatch({
-      type: 'HYPERINATOR_LOAD',
-      data: cfgPath
-    })
+    if (Object.keys(this.records).length === 0) {
+      const cfgName = `hyperpwn-${name}.yml`
+      const cfgPath = resolve(homedir(), '.hyperinator', cfgName)
+      copySync(resolve(__dirname, 'cfgs', cfgName), cfgPath, {overwrite: false})
+      this.store.dispatch({
+        type: 'HYPERINATOR_LOAD',
+        data: cfgPath
+      })
+    }
   }
 
   replayUid(uid, cols) {
