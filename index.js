@@ -31,6 +31,7 @@ class Hyperpwn {
   constructor() {
     this.index = null
     this.records = {}
+    this.recordLen = 0
     this.replayPrev = this.replayPrev.bind(this)
     this.replayNext = this.replayNext.bind(this)
   }
@@ -44,6 +45,7 @@ class Hyperpwn {
     delete this.records[uid]
     if (Object.keys(this.records).length === 0) {
       this.index = null
+      this.recordLen = 0
     }
   }
 
@@ -51,11 +53,19 @@ class Hyperpwn {
     return Object.keys(this.records).some(uid => {
       if (title.includes(this.records[uid].name)) {
         this.records[uid].push(data)
-        this.index = this.records[uid].length - 1
         return true
       }
       return false
     })
+  }
+
+  alignData() {
+    Object.keys(this.records).forEach(uid => {
+      if (this.records[uid].length === this.recordLen) {
+        this.records[uid].push('')
+      }
+    })
+    this.recordLen += 1
   }
 
   uidHeader(uid) {
@@ -66,15 +76,6 @@ class Hyperpwn {
 
   setStore(store) {
     this.store = store
-  }
-
-  checkRecordLength() {
-    const lens = Object.keys(this.records).map(uid => this.records[uid].length)
-    const first = lens[0]
-    if (lens.every(len => len === first)) {
-      return first
-    }
-    return null
   }
 
   loadLayout(name) {
@@ -110,25 +111,22 @@ class Hyperpwn {
   }
 
   replayPrev() {
-    const len = this.checkRecordLength()
-    if (len && this.index > 0 && this.index < len) {
+    if (this.index > 0) {
       this.index -= 1
       this.replay()
     }
   }
 
   replayNext() {
-    const len = this.checkRecordLength()
-    if (len && this.index < len - 1) {
+    if (this.index < this.recordLen - 1) {
       this.index += 1
       this.replay()
     }
   }
 
   replayLast() {
-    const len = this.checkRecordLength()
-    if (len) {
-      this.index = len - 1
+    if (this.recordLen) {
+      this.index = this.recordLen - 1
       this.replay()
     }
   }
@@ -180,15 +178,21 @@ exports.middleware = store => next => action => {
       const end = /\r\n(\u001B\[[^m]*m)*─+(\u001B\[[^m]*m)*\r\n/.exec(contextData)
       if (end) {
         let endDisp = false
+        let dataAdded = false
         contextStart = false
         const tailData = contextData.substr(end.index + end[0].length)
         contextData = contextData.substr(0, end.index + 2)
         const parts = contextData.split(/(^.*─.*$)/mg).slice(1)
         for (let i = 0; i < parts.length; i += 2) {
-          if (!hyperpwn.addData(uid, parts[i], parts[i + 1].slice(2, -2))) {
+          if (hyperpwn.addData(uid, parts[i], parts[i + 1].slice(2, -2))) {
+            dataAdded = true
+          } else {
             action.data += parts[i] + parts[i + 1]
             endDisp = true
           }
+        }
+        if (dataAdded) {
+          hyperpwn.alignData()
         }
         hyperpwn.replayLast()
 
