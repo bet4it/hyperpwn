@@ -16,6 +16,7 @@ const defaultConfig = {
     prev: 'ctrl+shift+pageup',
     next: 'ctrl+shift+pagedown'
   },
+  autoClean: false,
   showHeaders: true,
   headerStyle: {
     position: 'absolute',
@@ -66,6 +67,16 @@ class Hyperpwn {
       }
     })
     this.recordLen += 1
+  }
+
+  cleanData() {
+    Object.keys(this.records).forEach(uid => {
+      let name = this.records[uid].name
+      this.records[uid] = []
+      this.records[uid].name = name
+    })
+    this.index = null
+    this.recordLen = 0
   }
 
   uidHeader(uid) {
@@ -147,10 +158,16 @@ exports.middleware = store => next => action => {
     if (strippedData.includes('GEF for linux ready')) {
       hyperpwn.setStore(store)
       hyperpwn.loadLayout('gef')
+      if (config.autoClean) {
+        hyperpwn.cleanData()
+      }
     }
     if (strippedData.includes('pwndbg: loaded ')) {
       hyperpwn.setStore(store)
       hyperpwn.loadLayout('pwndbg')
+      if (config.autoClean) {
+        hyperpwn.cleanData()
+      }
     }
   }
 

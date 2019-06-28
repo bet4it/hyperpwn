@@ -52,6 +52,7 @@ module.exports = {
         prev: 'ctrl+shift+pageup',
         next: 'ctrl+shift+pagedown'
       },
+      autoClean: false,
       showHeaders: true,
       headerStyle: {
         position: 'absolute',
