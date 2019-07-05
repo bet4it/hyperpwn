@@ -10,6 +10,7 @@ const ansiEscapes = require('ansi-escapes')
 let hyperpwn
 let contextStart
 let contextData
+let legendFix
 
 const defaultConfig = {
   hotkeys: {
@@ -71,7 +72,7 @@ class Hyperpwn {
 
   cleanData() {
     Object.keys(this.records).forEach(uid => {
-      let name = this.records[uid].name
+      const {name} = this.records[uid]
       this.records[uid] = []
       this.records[uid].name = name
     })
@@ -172,11 +173,16 @@ exports.middleware = store => next => action => {
   }
 
   if (type === 'SESSION_PTY_DATA') {
-    const {data, uid} = action
+    let {data, uid} = action
     const view = /^ hyperpwn (.*)\r\n\r\n$/.exec(data)
     if (view) {
       hyperpwn.addUid(uid, view[1])
       action.data = ansiEscapes.cursorHide
+    }
+
+    if (legendFix) {
+      data = data.substr(2)
+      legendFix = false
     }
 
     if (contextStart) {
@@ -184,14 +190,26 @@ exports.middleware = store => next => action => {
       contextData += data
     }
 
-    const legend = /^(\[ )?legend:/im.exec(data)
+    const legend = /^(\[ )?legend:.*$/im.exec(data)
     if (legend) {
       contextStart = true
       action.data = data.substr(0, legend.index)
       contextData = data.substr(legend.index + legend[0].length)
+      if (contextData.length > 0) {
+        contextData = contextData.substr(2)
+      } else {
+        legendFix = true
+      }
     }
 
-    if (contextStart) {
+    if (contextStart && contextData.length > 0) {
+      const firstTitle = /^(\u001B\[[^m]*m)*─/.exec(contextData)
+      if (!firstTitle) {
+        contextStart = false
+        action.data += contextData
+        contextData = ''
+      }
+
       const end = /\r\n(\u001B\[[^m]*m)*─+(\u001B\[[^m]*m)*\r\n/.exec(contextData)
       if (end) {
         let endDisp = false

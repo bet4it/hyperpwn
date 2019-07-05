@@ -1,6 +1,6 @@
 {
   "name": "hyperpwn",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Build a pwn environment on hyper",
   "repository": "bet4it/hyperpwn",
   "author": "Bet4 <0xbet4@gmail.com>",
@@ -22,6 +22,7 @@
     "semicolon": false,
     "rules": {
       "max-depth": "off",
+      "complexity": "off",
       "no-control-regex": "off",
       "padding-line-between-statements": [
         "error",
