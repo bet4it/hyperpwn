@@ -18,6 +18,7 @@ const defaultConfig = {
     next: 'ctrl+shift+pagedown'
   },
   autoClean: false,
+  autoLayout: true,
   showHeaders: true,
   headerStyle: {
     position: 'absolute',
@@ -86,8 +87,15 @@ class Hyperpwn {
     }
   }
 
-  setStore(store) {
+  initSession(store, uid, backend) {
     this.store = store
+    this.mainUid = uid
+    if (config.autoLayout) {
+      this.loadLayout(backend)
+    }
+    if (config.autoClean) {
+      this.cleanData()
+    }
   }
 
   loadLayout(name) {
@@ -154,21 +162,13 @@ exports.middleware = store => next => action => {
   }
 
   if (type === 'SESSION_ADD_DATA') {
-    const {data} = action
+    const {data, uid} = action
     const strippedData = stripAnsi(data)
     if (strippedData.includes('GEF for linux ready')) {
-      hyperpwn.setStore(store)
-      hyperpwn.loadLayout('gef')
-      if (config.autoClean) {
-        hyperpwn.cleanData()
-      }
+      hyperpwn.initSession(store, uid, 'gef')
     }
     if (strippedData.includes('pwndbg: loaded ')) {
-      hyperpwn.setStore(store)
-      hyperpwn.loadLayout('pwndbg')
-      if (config.autoClean) {
-        hyperpwn.cleanData()
-      }
+      hyperpwn.initSession(store, uid, 'pwndbg')
     }
   }
 

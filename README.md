@@ -53,6 +53,7 @@ module.exports = {
         next: 'ctrl+shift+pagedown'
       },
       autoClean: false,
+      autoLayout: true,
       showHeaders: true,
       headerStyle: {
         position: 'absolute',
