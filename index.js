@@ -33,8 +33,10 @@ let config = defaultConfig
 class Hyperpwn {
   constructor() {
     this.index = null
+    this.mainUid = null
     this.records = {}
     this.recordLen = 0
+    this.legend = {uid: null, data: null, header: null}
     this.replayPrev = this.replayPrev.bind(this)
     this.replayNext = this.replayNext.bind(this)
   }
@@ -45,10 +47,14 @@ class Hyperpwn {
   }
 
   delUid(uid) {
-    delete this.records[uid]
-    if (Object.keys(this.records).length === 0) {
-      this.index = null
-      this.recordLen = 0
+    if (uid === this.legend.uid) {
+      this.legend = {uid: null, data: null, header: null}
+    } else {
+      delete this.records[uid]
+      if (Object.keys(this.records).length === 0) {
+        this.index = null
+        this.recordLen = 0
+      }
     }
   }
 
@@ -81,7 +87,21 @@ class Hyperpwn {
     this.recordLen = 0
   }
 
+  addLegend(data) {
+    if (this.legend.data !== data) {
+      this.legend.data = data
+      this.store.dispatch({
+        type: 'SESSION_PTY_DATA',
+        uid: this.legend.uid,
+        data: ansiEscapes.clearTerminal + data
+      })
+    }
+  }
+
   uidHeader(uid) {
+    if (uid === this.legend.uid) {
+      return this.legend.header
+    }
     if (uid in this.records) {
       return `[${this.records[uid].name}]`
     }
@@ -161,8 +181,8 @@ exports.middleware = store => next => action => {
     }
   }
 
-  if (type === 'SESSION_ADD_DATA') {
-    const {data, uid} = action
+  if (type === 'SESSION_PTY_DATA') {
+    let {data, uid} = action
     const strippedData = stripAnsi(data)
     if (strippedData.includes('GEF for linux ready')) {
       hyperpwn.initSession(store, uid, 'gef')
@@ -170,14 +190,21 @@ exports.middleware = store => next => action => {
     if (strippedData.includes('pwndbg: loaded ')) {
       hyperpwn.initSession(store, uid, 'pwndbg')
     }
-  }
 
-  if (type === 'SESSION_PTY_DATA') {
-    let {data, uid} = action
     const view = /^ hyperpwn (.*)\r\n\r\n$/.exec(data)
     if (view) {
-      hyperpwn.addUid(uid, view[1])
+      if (view[1].toLowerCase() === 'legend') {
+        hyperpwn.legend.uid = uid
+        hyperpwn.legend.header = `[${view[1]}]`
+      } else {
+        hyperpwn.addUid(uid, view[1])
+      }
       action.data = ansiEscapes.cursorHide
+    }
+
+    if (uid !== hyperpwn.mainUid) {
+      next(action)
+      return
     }
 
     if (legendFix) {
@@ -190,9 +217,10 @@ exports.middleware = store => next => action => {
       contextData += data
     }
 
-    const legend = /^(\[ )?legend:.*$/im.exec(data)
+    const legend = /^(\[ )?legend: (.*?)\]?$/im.exec(data)
     if (legend) {
       contextStart = true
+      hyperpwn.addLegend(legend[2])
       action.data = data.substr(0, legend.index)
       contextData = data.substr(legend.index + legend[0].length)
       if (contextData.length > 0) {
