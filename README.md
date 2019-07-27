@@ -4,15 +4,21 @@
 
 Hyperpwn is a [Hyper](https://hyper.is) plugin to improve the display when debugging with GDB.
 
-Hyperpwn needs [GEF](https://github.com/hugsy/gef) to be loaded in GDB as a backend.
+Hyperpwn needs [GEF](https://github.com/hugsy/gef) or [pwndbg](https://github.com/pwndbg/pwndbg) to be loaded in GDB as a backend.
 Hyperpwn handles with its context data, seperates them to different windows to get a clearer display and can easily replay previous states.
 
-<img src="https://user-images.githubusercontent.com/16643669/59614153-bd40d800-9152-11e9-921c-ac1f0be83686.gif">
+* Use hyperpwn on GEF. Theme: [hyper-chesterish](https://github.com/henrikdahl/hyper-chesterish):
+![](https://user-images.githubusercontent.com/16643669/61991945-25f06e00-b08a-11e9-95b2-a9eb32e0bfad.gif)
+
+* Use hyperpwn together with [hyper-pane](https://github.com/chabou/hyper-pane) on pwndbg. Theme: [hyper-material-theme](https://github.com/equinusocio/hyper-material-theme):
+![](https://user-images.githubusercontent.com/16643669/61991962-5df7b100-b08a-11e9-9b9e-e811da4b8d11.gif)
+
+* If you want to use hyperpwn together with other tools such as pwntools and VS Code, you can check for [this tutorial](https://github.com/bet4it/build-an-efficient-pwn-environment)
 
 # Install
 Firstly, you need to [install Hyper](https://hyper.is/#installation) on your computer.
 
-Hyperpwn relies on [hyperinator](https://github.com/bet4it/hyperinator). You need to install both `hyperinator` and `hyperpwn` plugins to use Hyperpwn.
+Hyperpwn relies on [hyperinator](https://github.com/bet4it/hyperinator). You need to install both `hyperinator` and `hyperpwn` plugins to use hyperpwn.
 
 You can install them by command line:
 ```sh
@@ -29,7 +35,7 @@ plugins: [
 # Usage
 Just run `gdb` in Hyper terminal.
 
-If GEF is loaded, Hyperpwn will automatically create a config file in `~/.hyperinator`, load it and handle with the context data.
+If GEF or pwndbg is loaded, hyperpwn will automatically create a config file in `~/.hyperinator`, load it and handle with the context data.
 
 You can edit the config file to change the layout and parts to display.
 
@@ -48,6 +54,8 @@ module.exports = {
         prev: 'ctrl+shift+pageup',
         next: 'ctrl+shift+pagedown'
       },
+      autoClean: false,
+      autoLayout: true,
       showHeaders: true,
       headerStyle: {
         position: 'absolute',
@@ -62,5 +70,6 @@ module.exports = {
 ```
 
 # Notice
+* If you want to use hyperpwn on pwndbg, make sure you have installed the git version of pwndbg, or you must backport [this patch](https://github.com/pwndbg/pwndbg/commit/97c5ccb4197e6cb0042740a7bf378d4104a79717.patch).
 * Make sure you have enabled the display of `legend` in the backend (which is the default behavior).
-* You can try to change `context.nb_lines_code`, `context.nb_lines_code_prev` or other configs in GEF to get a better display.
+* You can try to change configs like `context.nb_lines_code`, `context.nb_lines_code_prev` in GEF, or `context-code-lines` in pwndbg, to get a better display.

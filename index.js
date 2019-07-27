@@ -10,13 +10,15 @@ const ansiEscapes = require('ansi-escapes')
 let hyperpwn
 let contextStart
 let contextData
-const uidViews = {}
+let legendFix
 
 const defaultConfig = {
   hotkeys: {
     prev: 'ctrl+shift+pageup',
     next: 'ctrl+shift+pagedown'
   },
+  autoClean: false,
+  autoLayout: true,
   showHeaders: true,
   headerStyle: {
     position: 'absolute',
@@ -31,48 +33,108 @@ let config = defaultConfig
 class Hyperpwn {
   constructor() {
     this.index = null
+    this.mainUid = null
     this.records = {}
+    this.recordLen = 0
+    this.legend = {uid: null, data: null, header: null}
     this.replayPrev = this.replayPrev.bind(this)
     this.replayNext = this.replayNext.bind(this)
   }
 
-  addUid(uid) {
+  addUid(uid, name) {
     this.records[uid] = []
+    this.records[uid].name = name
   }
 
-  addData(uid, data) {
-    this.records[uid].push(data)
-    this.index = this.records[uid].length - 1
-  }
-
-  setStore(store) {
-    this.store = store
-  }
-
-  checkRecordLength() {
-    const lens = Object.keys(this.records).map(uid => this.records[uid].length)
-    const first = lens[0]
-    if (lens.every(len => len === first)) {
-      return first
+  delUid(uid) {
+    if (uid === this.legend.uid) {
+      this.legend = {uid: null, data: null, header: null}
+    } else {
+      delete this.records[uid]
+      if (Object.keys(this.records).length === 0) {
+        this.index = null
+        this.recordLen = 0
+      }
     }
-    return null
+  }
+
+  addData(uid, title, data) {
+    return Object.keys(this.records).some(uid => {
+      if (title.includes(this.records[uid].name)) {
+        this.records[uid].push(data)
+        return true
+      }
+      return false
+    })
+  }
+
+  alignData() {
+    Object.keys(this.records).forEach(uid => {
+      if (this.records[uid].length === this.recordLen) {
+        this.records[uid].push('')
+      }
+    })
+    this.recordLen += 1
+  }
+
+  cleanData() {
+    Object.keys(this.records).forEach(uid => {
+      const {name} = this.records[uid]
+      this.records[uid] = []
+      this.records[uid].name = name
+    })
+    this.index = null
+    this.recordLen = 0
+  }
+
+  addLegend(data) {
+    if (this.legend.data !== data) {
+      this.legend.data = data
+      this.store.dispatch({
+        type: 'SESSION_PTY_DATA',
+        uid: this.legend.uid,
+        data: ansiEscapes.clearTerminal + data
+      })
+    }
+  }
+
+  uidHeader(uid) {
+    if (uid === this.legend.uid) {
+      return this.legend.header
+    }
+    if (uid in this.records) {
+      return `[${this.records[uid].name}]`
+    }
+  }
+
+  initSession(store, uid, backend) {
+    this.store = store
+    this.mainUid = uid
+    if (config.autoLayout) {
+      this.loadLayout(backend)
+    }
+    if (config.autoClean) {
+      this.cleanData()
+    }
   }
 
   loadLayout(name) {
-    const cfgName = `hyperpwn-${name}.yml`
-    const cfgPath = resolve(homedir(), '.hyperinator', cfgName)
-    copySync(resolve(__dirname, 'cfgs', cfgName), cfgPath, {overwrite: false})
-    this.store.dispatch({
-      type: 'HYPERINATOR_LOAD',
-      data: cfgPath
-    })
+    if (Object.keys(this.records).length === 0) {
+      const cfgName = `hyperpwn-${name}.yml`
+      const cfgPath = resolve(homedir(), '.hyperinator', cfgName)
+      copySync(resolve(__dirname, 'cfgs', cfgName), cfgPath, {overwrite: false})
+      this.store.dispatch({
+        type: 'HYPERINATOR_LOAD',
+        data: cfgPath
+      })
+    }
   }
 
   replayUid(uid, cols) {
     if (uid in this.records && Number.isInteger(this.index)) {
       let data = this.records[uid][this.index]
       data = data.replace(/^.*$/mg, line => cliTruncate(expandTabs(line), cols))
-      data = ansiEscapes.clearScreen + ansiEscapes.cursorHide + data
+      data = ansiEscapes.clearTerminal + data
       this.store.dispatch({
         type: 'SESSION_PTY_DATA',
         uid,
@@ -89,25 +151,22 @@ class Hyperpwn {
   }
 
   replayPrev() {
-    const len = this.checkRecordLength()
-    if (len && this.index > 0 && this.index < len) {
+    if (this.index > 0) {
       this.index -= 1
       this.replay()
     }
   }
 
   replayNext() {
-    const len = this.checkRecordLength()
-    if (len && this.index < len - 1) {
+    if (this.index < this.recordLen - 1) {
       this.index += 1
       this.replay()
     }
   }
 
   replayLast() {
-    const len = this.checkRecordLength()
-    if (len) {
-      this.index = len - 1
+    if (this.recordLen) {
+      this.index = this.recordLen - 1
       this.replay()
     }
   }
@@ -122,26 +181,35 @@ exports.middleware = store => next => action => {
     }
   }
 
-  if (type === 'SESSION_ADD_DATA') {
-    const {data} = action
+  if (type === 'SESSION_PTY_DATA') {
+    let {data, uid} = action
     const strippedData = stripAnsi(data)
     if (strippedData.includes('GEF for linux ready')) {
-      hyperpwn.setStore(store)
-      hyperpwn.loadLayout('gef')
+      hyperpwn.initSession(store, uid, 'gef')
     }
     if (strippedData.includes('pwndbg: loaded ')) {
-      hyperpwn.setStore(store)
-      hyperpwn.loadLayout('pwndbg')
+      hyperpwn.initSession(store, uid, 'pwndbg')
     }
-  }
 
-  if (type === 'SESSION_PTY_DATA') {
-    const {data, uid} = action
     const view = /^ hyperpwn (.*)\r\n\r\n$/.exec(data)
     if (view) {
-      uidViews[uid] = view[1]
-      hyperpwn.addUid(uid)
+      if (view[1].toLowerCase() === 'legend') {
+        hyperpwn.legend.uid = uid
+        hyperpwn.legend.header = `[${view[1]}]`
+      } else {
+        hyperpwn.addUid(uid, view[1])
+      }
       action.data = ansiEscapes.cursorHide
+    }
+
+    if (uid !== hyperpwn.mainUid) {
+      next(action)
+      return
+    }
+
+    if (legendFix) {
+      data = data.substr(2)
+      legendFix = false
     }
 
     if (contextStart) {
@@ -149,34 +217,51 @@ exports.middleware = store => next => action => {
       contextData += data
     }
 
-    const legend = /^(\[ )?legend:/im.exec(data)
+    const legend = /^(\[ )?legend: (.*?)\]?$/im.exec(data)
     if (legend) {
       contextStart = true
+      hyperpwn.addLegend(legend[2])
       action.data = data.substr(0, legend.index)
       contextData = data.substr(legend.index + legend[0].length)
+      if (contextData.length > 0) {
+        contextData = contextData.substr(2)
+      } else {
+        legendFix = true
+      }
     }
 
-    if (contextStart) {
+    if (contextStart && contextData.length > 0) {
+      const firstTitle = /^(\u001B\[[^m]*m)*─/.exec(contextData)
+      if (!firstTitle) {
+        contextStart = false
+        action.data += contextData
+        contextData = ''
+      }
+
       const end = /\r\n(\u001B\[[^m]*m)*─+(\u001B\[[^m]*m)*\r\n/.exec(contextData)
       if (end) {
+        let endDisp = false
+        let dataAdded = false
         contextStart = false
         const tailData = contextData.substr(end.index + end[0].length)
-        contextData = contextData.substr(0, end.index)
+        contextData = contextData.substr(0, end.index + 2)
         const parts = contextData.split(/(^.*─.*$)/mg).slice(1)
         for (let i = 0; i < parts.length; i += 2) {
-          let found = false
-          Object.keys(uidViews).forEach(uid => {
-            if (parts[i].includes(uidViews[uid])) {
-              const disp = parts[i + 1].substr(2, parts[i + 1].length - 4)
-              hyperpwn.addData(uid, disp)
-              found = true
-            }
-          })
-          if (!found) {
+          if (hyperpwn.addData(uid, parts[i], parts[i + 1].slice(2, -2))) {
+            dataAdded = true
+          } else {
             action.data += parts[i] + parts[i + 1]
+            endDisp = true
           }
         }
+        if (dataAdded) {
+          hyperpwn.alignData()
+        }
         hyperpwn.replayLast()
+
+        if (endDisp) {
+          action.data += end[0].substr(2)
+        }
         action.data += tailData
       }
       if (!action.data) {
@@ -187,6 +272,10 @@ exports.middleware = store => next => action => {
 
   if (type === 'SESSION_RESIZE') {
     hyperpwn.replayUid(action.uid, action.cols)
+  }
+
+  if (type === 'SESSION_PTY_EXIT') {
+    hyperpwn.delUid(action.uid)
   }
 
   next(action)
@@ -248,8 +337,8 @@ exports.decorateTerm = (Term, {React}) => {
       const props = {}
 
       let header
-      if (config.showHeaders && this.props.uid in uidViews) {
-        header = `[${uidViews[this.props.uid]}]`
+      if (config.showHeaders) {
+        header = hyperpwn.uidHeader(this.props.uid)
       }
 
       if (!header) {

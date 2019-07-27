@@ -1,10 +1,11 @@
 {
   "name": "hyperpwn",
-  "version": "0.1.0",
+  "version": "0.2.2",
   "description": "Build a pwn environment on hyper",
   "repository": "bet4it/hyperpwn",
   "author": "Bet4 <0xbet4@gmail.com>",
   "license": "MIT",
+  "main": "index.js",
   "files": [
     "cfgs"
   ],
@@ -21,6 +22,7 @@
     "semicolon": false,
     "rules": {
       "max-depth": "off",
+      "complexity": "off",
       "no-control-regex": "off",
       "padding-line-between-statements": [
         "error",
@@ -40,8 +42,8 @@
     "xo": "^0.24.0"
   },
   "dependencies": {
-    "ansi-escapes": "^4.1.0",
-    "cli-truncate": "^1.1.0",
+    "ansi-escapes": "^4.2.0",
+    "cli-truncate": "github:bet4it/cli-truncate",
     "expandtabs": "^1.0.0",
     "fs-extra": "^8.0.1",
     "lodash.merge": "^4.6.1",

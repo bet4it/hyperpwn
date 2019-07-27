@@ -3,7 +3,7 @@ global_options:
   default-shell: /bin/sleep
   default-shell-args: infinity
 windows:
-- layout: 26c9,156x37,0,0{99x37,0,0[99x21,0,0,0,99x4,0,22,8,99x10,0,27,4],56x37,100,0[56x25,100,0,2,56x11,100,26,7]}
+- layout: ea21,237x62,0,0{139x62,0,0[139x34,0,0,1,139x8,0,35,2,139x18,0,44,3],97x62,140,0[97x35,140,0,4,97x4,140,36,6,97x21,140,41,5]}
   panes:
   - shell_command:
     - hyperpwn REG
@@ -15,5 +15,7 @@ windows:
     -
     reuse: True
     focus: True
+  - shell_command:
+    - hyperpwn LEGEND
   - shell_command:
     - hyperpwn STACK
