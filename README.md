@@ -8,10 +8,12 @@ Hyperpwn needs [GEF](https://github.com/hugsy/gef) or [pwndbg](https://github.co
 Hyperpwn handles with its context data, seperates them to different windows to get a clearer display and can easily replay previous states.
 
 * Use hyperpwn on GEF. Theme: [hyper-chesterish](https://github.com/henrikdahl/hyper-chesterish):
-<img src="https://user-images.githubusercontent.com/16643669/60032146-921d3200-96d8-11e9-84d7-905a9669acc4.gif">
+![](https://user-images.githubusercontent.com/16643669/61991945-25f06e00-b08a-11e9-95b2-a9eb32e0bfad.gif)
 
 * Use hyperpwn together with [hyper-pane](https://github.com/chabou/hyper-pane) on pwndbg. Theme: [hyper-material-theme](https://github.com/equinusocio/hyper-material-theme):
-<img src="https://user-images.githubusercontent.com/16643669/60032184-9fd2b780-96d8-11e9-835e-3dd1c033f352.gif">
+![](https://user-images.githubusercontent.com/16643669/61991962-5df7b100-b08a-11e9-9b9e-e811da4b8d11.gif)
+
+* If you want to use hyperpwn together with other tools such as pwntools and VS Code, you can check for [this tutorial](https://github.com/bet4it/build-an-efficient-pwn-environment)
 
 # Install
 Firstly, you need to [install Hyper](https://hyper.is/#installation) on your computer.
