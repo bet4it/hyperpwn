@@ -184,6 +184,9 @@ exports.middleware = store => next => action => {
   if (type === 'SESSION_PTY_DATA') {
     let {data, uid} = action
     const strippedData = stripAnsi(data)
+    if (strippedData.includes('gdb-peda')) {
+      hyperpwn.initSession(store, uid, 'peda')
+    }
     if (strippedData.includes('GEF for linux ready')) {
       hyperpwn.initSession(store, uid, 'gef')
     }
@@ -217,10 +220,10 @@ exports.middleware = store => next => action => {
       contextData += data
     }
 
-    const legend = /^(\[ )?legend: (.*?)\]?$/im.exec(data)
+    const legend = /^(\u001B\[[^m]*m)*(\[ )?legend: (.*?)\]?$/im.exec(data)
     if (legend) {
       contextStart = true
-      hyperpwn.addLegend(legend[2])
+      hyperpwn.addLegend(legend[legend.length - 1])
       action.data = data.substr(0, legend.index)
       contextData = data.substr(legend.index + legend[0].length)
       if (contextData.length > 0) {
@@ -231,21 +234,21 @@ exports.middleware = store => next => action => {
     }
 
     if (contextStart && contextData.length > 0) {
-      const firstTitle = /^(\u001B\[[^m]*m)*─/.exec(contextData)
+      const firstTitle = /^(\u001B\[[^m]*m)*\[?[-─]/.exec(contextData)
       if (!firstTitle) {
         contextStart = false
         action.data += contextData
         contextData = ''
       }
 
-      const end = /\r\n(\u001B\[[^m]*m)*─+(\u001B\[[^m]*m)*\r\n/.exec(contextData)
+      const end = /\r\n(\u001B\[[^m]*m)*\[?[-─]{5,}\]?(\u001B\[[^m]*m)*\r\n/.exec(contextData)
       if (end) {
         let endDisp = false
         let dataAdded = false
         contextStart = false
         const tailData = contextData.substr(end.index + end[0].length)
         contextData = contextData.substr(0, end.index + 2)
-        const parts = contextData.split(/(^.*─.*$)/mg).slice(1)
+        const parts = contextData.split(/(^.*[-─]{5,}.*$)/mg).slice(1)
         for (let i = 0; i < parts.length; i += 2) {
           if (hyperpwn.addData(uid, parts[i], parts[i + 1].slice(2, -2))) {
             dataAdded = true
