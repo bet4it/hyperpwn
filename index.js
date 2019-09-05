@@ -220,10 +220,10 @@ exports.middleware = store => next => action => {
       contextData += data
     }
 
-    const legend = /^(\u001B\[[^m]*m)*(\[ )?legend: (.*?)\]?$/im.exec(data)
+    const legend = /^(?:\u001B\[[^m]*m)*(?:\[ )?legend: (.*?)\]?$/im.exec(data)
     if (legend) {
       contextStart = true
-      hyperpwn.addLegend(legend[legend.length - 1])
+      hyperpwn.addLegend(legend[0])
       action.data = data.substr(0, legend.index)
       contextData = data.substr(legend.index + legend[0].length)
       if (contextData.length > 0) {
@@ -234,21 +234,22 @@ exports.middleware = store => next => action => {
     }
 
     if (contextStart && contextData.length > 0) {
-      const firstTitle = /^(\u001B\[[^m]*m)*\[?[-─]/.exec(contextData)
+      const firstTitle = /^(?:\u001B\[[^m]*m)*\[?[-─]/.exec(contextData)
       if (!firstTitle) {
         contextStart = false
         action.data += contextData
         contextData = ''
       }
 
-      const end = /\r\n(\u001B\[[^m]*m)*\[?[-─]{5,}\]?(\u001B\[[^m]*m)*\r\n/.exec(contextData)
+      const end = /\r\n(?:\u001B\[[^m]*m)*\[?[-─]+\]?(?:\u001B\[[^m]*m)*\r\n/.exec(contextData)
       if (end) {
         let endDisp = false
         let dataAdded = false
         contextStart = false
         const tailData = contextData.substr(end.index + end[0].length)
         contextData = contextData.substr(0, end.index + 2)
-        const parts = contextData.split(/(^.*[-─]{5,}.*$)/mg).slice(1)
+        const partRegex = /^((?:\u001B\[[^m]*m)*\[?[-─]+.*[-─]+\]?(?:\u001B\[[^m]*m)*)$/mg
+        const parts = contextData.split(partRegex).slice(1)
         for (let i = 0; i < parts.length; i += 2) {
           if (hyperpwn.addData(uid, parts[i], parts[i + 1].slice(2, -2))) {
             dataAdded = true

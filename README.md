@@ -17,6 +17,7 @@ Hyperpwn handles with its context data, seperates them to different windows to g
 
 # Install
 Firstly, you need to [install Hyper](https://hyper.is/#installation) on your computer.
+(If you encounter any weird bugs during using `Hyper`, try to downgrade it to [v2.1.2](https://github.com/zeit/hyper/releases/tag/2.1.2))
 
 Hyperpwn relies on [hyperinator](https://github.com/bet4it/hyperinator). You need to install both `hyperinator` and `hyperpwn` plugins to use hyperpwn.
 
