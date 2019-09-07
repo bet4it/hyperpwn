@@ -185,6 +185,7 @@ exports.middleware = store => next => action => {
     let {data, uid} = action
     const strippedData = stripAnsi(data)
     if (strippedData.includes('gdb-peda')) {
+      config.autoClean = false
       hyperpwn.initSession(store, uid, 'peda')
     }
     if (strippedData.includes('GEF for linux ready')) {

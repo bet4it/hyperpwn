@@ -17,7 +17,6 @@ Hyperpwn handles with its context data, seperates them to different windows to g
 
 # Install
 Firstly, you need to [install Hyper](https://hyper.is/#installation) on your computer.
-(If you encounter any weird bugs during using `Hyper`, try to downgrade it to [v2.1.2](https://github.com/zeit/hyper/releases/tag/2.1.2))
 
 Hyperpwn relies on [hyperinator](https://github.com/bet4it/hyperinator). You need to install both `hyperinator` and `hyperpwn` plugins to use hyperpwn.
 
@@ -71,6 +70,7 @@ module.exports = {
 ```
 
 # Notice
+* If you encounter any weird display bugs during using Hyper or hyperpwn, try to downgrade Hyper to [v2.1.2](https://github.com/zeit/hyper/releases/tag/2.1.2).
 * If you want to use hyperpwn on pwndbg, make sure you have installed the git version of pwndbg, or you must backport [this patch](https://github.com/pwndbg/pwndbg/commit/97c5ccb4197e6cb0042740a7bf378d4104a79717.patch).
 * If you want to use hyperpwn on peda, please use [my fork of peda](https://github.com/bet4it/peda).
 * Make sure you have enabled the display of `legend` in the backend (which is the default behavior).
