@@ -41,6 +41,10 @@ class Hyperpwn {
     this.replayNext = this.replayNext.bind(this)
   }
 
+  uids() {
+    return Object.keys(this.records)
+  }
+
   addUid(uid, name) {
     this.records[uid] = []
     this.records[uid].name = name
@@ -51,7 +55,7 @@ class Hyperpwn {
       this.legend = {uid: null, data: null, header: null}
     } else {
       delete this.records[uid]
-      if (Object.keys(this.records).length === 0) {
+      if (this.uids().length === 0) {
         this.index = null
         this.recordLen = 0
       }
@@ -59,7 +63,7 @@ class Hyperpwn {
   }
 
   addData(uid, title, data) {
-    return Object.keys(this.records).some(uid => {
+    return this.uids().some(uid => {
       if (title.includes(this.records[uid].name)) {
         this.records[uid].push(data)
         return true
@@ -69,7 +73,7 @@ class Hyperpwn {
   }
 
   alignData() {
-    Object.keys(this.records).forEach(uid => {
+    this.uids().forEach(uid => {
       if (this.records[uid].length === this.recordLen) {
         this.records[uid].push('')
       }
@@ -78,7 +82,7 @@ class Hyperpwn {
   }
 
   cleanData() {
-    Object.keys(this.records).forEach(uid => {
+    this.uids().forEach(uid => {
       const {name} = this.records[uid]
       this.records[uid] = []
       this.records[uid].name = name
@@ -119,7 +123,7 @@ class Hyperpwn {
   }
 
   loadLayout(name) {
-    if (Object.keys(this.records).length === 0) {
+    if (this.uids().length === 0) {
       const cfgName = `hyperpwn-${name}.yml`
       const cfgPath = resolve(homedir(), '.hyperinator', cfgName)
       copySync(resolve(__dirname, 'cfgs', cfgName), cfgPath, {overwrite: false})
@@ -144,7 +148,7 @@ class Hyperpwn {
   }
 
   replay() {
-    Object.keys(this.records).forEach(uid => {
+    this.uids().forEach(uid => {
       const {cols} = this.store.getState().sessions.sessions[uid]
       this.replayUid(uid, cols)
     })
@@ -178,6 +182,21 @@ exports.middleware = store => next => action => {
   if (type === 'CONFIG_LOAD' || type === 'CONFIG_RELOAD') {
     if (action.config.hyperpwn) {
       config = merge(JSON.parse(JSON.stringify(defaultConfig)), action.config.hyperpwn)
+    }
+  }
+
+  if (type === 'SESSION_USER_DATA') {
+    const {activeUid} = store.getState().sessions
+    if (hyperpwn.uids().includes(activeUid)) {
+      window.rpc.emit('data', {
+        uid: hyperpwn.mainUid,
+        data: action.data
+      })
+      store.dispatch({
+        type: 'SESSION_SET_ACTIVE',
+        uid: hyperpwn.mainUid
+      })
+      return
     }
   }
 
