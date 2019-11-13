@@ -40,6 +40,8 @@ If the backend is loaded, hyperpwn will automatically create a config file in `~
 You can edit the config file to change the layout and parts to display.
 
 ## Shortcuts
+* stepi:	`F7`
+* nexti:	`F8`
 * display previous state:	`ctrl+shift+pageup`
 * display next state:		`ctrl+shift+pagedown`
 
@@ -52,7 +54,11 @@ module.exports = {
     hyperpwn: {
       hotkeys: {
         prev: 'ctrl+shift+pageup',
-        next: 'ctrl+shift+pagedown'
+        next: 'ctrl+shift+pagedown',
+        cmd: {
+          stepi: 'f7',
+          nexti: 'f8'
+        }
       },
       autoClean: false,
       autoLayout: true,

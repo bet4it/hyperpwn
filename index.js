@@ -15,7 +15,11 @@ let legendFix
 const defaultConfig = {
   hotkeys: {
     prev: 'ctrl+shift+pageup',
-    next: 'ctrl+shift+pagedown'
+    next: 'ctrl+shift+pagedown',
+    cmd: {
+      stepi: 'f7',
+      nexti: 'f8'
+    }
   },
   autoClean: false,
   autoLayout: true,
@@ -39,6 +43,7 @@ class Hyperpwn {
     this.legend = {uid: null, data: null, header: null}
     this.replayPrev = this.replayPrev.bind(this)
     this.replayNext = this.replayNext.bind(this)
+    this.sendCmd = this.sendCmd.bind(this)
   }
 
   uids() {
@@ -172,6 +177,17 @@ class Hyperpwn {
     if (this.recordLen) {
       this.index = this.recordLen - 1
       this.replay()
+    }
+  }
+
+  sendCmd(cmd) {
+    return () => {
+      if (this.mainUid) {
+        window.rpc.emit('data', {
+          uid: hyperpwn.mainUid,
+          data: '\b'.repeat(1000) + cmd + '\n'
+        })
+      }
     }
   }
 }
@@ -317,6 +333,9 @@ exports.decorateKeymaps = keymaps => {
     'pwn:replayprev': config.hotkeys.prev,
     'pwn:replaynext': config.hotkeys.next
   }
+  for (const [k, v] of Object.entries(config.hotkeys.cmd)) {
+    newKeymaps['pwn:cmd:' + k] = v
+  }
   return Object.assign({}, keymaps, newKeymaps)
 }
 
@@ -337,10 +356,14 @@ exports.decorateTerms = (Terms, {React}) => {
       }
 
       if (this.terms) {
-        terms.registerCommands({
+        const commands = {
           'pwn:replayprev': hyperpwn.replayPrev,
           'pwn:replaynext': hyperpwn.replayNext
+        }
+        Object.keys(config.hotkeys.cmd).forEach(cmd => {
+          commands['pwn:cmd:' + cmd] = hyperpwn.sendCmd(cmd)
         })
+        terms.registerCommands(commands)
       }
     }
 
