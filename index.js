@@ -247,7 +247,7 @@ exports.middleware = store => next => action => {
     }
 
     if (legendFix) {
-      data = data.substr(2)
+      data = data.slice(2)
       legendFix = false
     }
 
@@ -260,10 +260,10 @@ exports.middleware = store => next => action => {
     if (legend) {
       contextStart = true
       hyperpwn.addLegend(legend[0])
-      action.data = data.substr(0, legend.index)
-      contextData = data.substr(legend.index + legend[0].length)
+      action.data = data.slice(0, legend.index)
+      contextData = data.slice(legend.index + legend[0].length)
       if (contextData.length > 0) {
-        contextData = contextData.substr(2)
+        contextData = contextData.slice(2)
       } else {
         legendFix = true
       }
@@ -282,8 +282,8 @@ exports.middleware = store => next => action => {
         let endDisp = false
         let dataAdded = false
         contextStart = false
-        const tailData = contextData.substr(end.index + end[0].length)
-        contextData = contextData.substr(0, end.index + 2)
+        const tailData = contextData.slice(end.index + end[0].length)
+        contextData = contextData.slice(0, end.index + 2)
         const partRegex = /^((?:\u001B\[[^m]*m)*\[?[-─]+.*[-─]+\]?(?:\u001B\[[^m]*m)*)$/mg
         const parts = contextData.split(partRegex).slice(1)
         for (let i = 0; i < parts.length; i += 2) {
@@ -300,7 +300,7 @@ exports.middleware = store => next => action => {
         hyperpwn.replayLast()
 
         if (endDisp) {
-          action.data += end[0].substr(2)
+          action.data += end[0].slice(2)
         }
         action.data += tailData
       }

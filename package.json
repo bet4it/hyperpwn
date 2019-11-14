@@ -1,7 +1,7 @@
 {
   "name": "hyperpwn",
-  "version": "0.2.5",
-  "description": "Build a pwn environment on hyper",
+  "version": "0.3.0",
+  "description": "A hyper plugin to provide GDB with a flexible GUI",
   "repository": "bet4it/hyperpwn",
   "author": "Bet4 <0xbet4@gmail.com>",
   "license": "MIT",
@@ -39,7 +39,7 @@
     ]
   },
   "devDependencies": {
-    "xo": "^0.24.0"
+    "xo": "^0.25.3"
   },
   "dependencies": {
     "ansi-escapes": "^4.2.1",
@@ -47,6 +47,6 @@
     "expandtabs": "^1.0.0",
     "fs-extra": "^8.1.0",
     "lodash.merge": "^4.6.2",
-    "strip-ansi": "^5.2.0"
+    "strip-ansi": "^6.0.0"
   }
 }
