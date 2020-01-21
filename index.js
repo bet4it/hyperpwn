@@ -15,7 +15,11 @@ let legendFix
 const defaultConfig = {
   hotkeys: {
     prev: 'ctrl+shift+pageup',
-    next: 'ctrl+shift+pagedown'
+    next: 'ctrl+shift+pagedown',
+    cmd: {
+      stepi: 'f7',
+      nexti: 'f8'
+    }
   },
   autoClean: false,
   autoLayout: true,
@@ -39,6 +43,11 @@ class Hyperpwn {
     this.legend = {uid: null, data: null, header: null}
     this.replayPrev = this.replayPrev.bind(this)
     this.replayNext = this.replayNext.bind(this)
+    this.sendCmd = this.sendCmd.bind(this)
+  }
+
+  uids() {
+    return Object.keys(this.records)
   }
 
   addUid(uid, name) {
@@ -51,7 +60,7 @@ class Hyperpwn {
       this.legend = {uid: null, data: null, header: null}
     } else {
       delete this.records[uid]
-      if (Object.keys(this.records).length === 0) {
+      if (this.uids().length === 0) {
         this.index = null
         this.recordLen = 0
       }
@@ -59,7 +68,7 @@ class Hyperpwn {
   }
 
   addData(uid, title, data) {
-    return Object.keys(this.records).some(uid => {
+    return this.uids().some(uid => {
       if (title.includes(this.records[uid].name)) {
         this.records[uid].push(data)
         return true
@@ -69,7 +78,7 @@ class Hyperpwn {
   }
 
   alignData() {
-    Object.keys(this.records).forEach(uid => {
+    this.uids().forEach(uid => {
       if (this.records[uid].length === this.recordLen) {
         this.records[uid].push('')
       }
@@ -78,7 +87,7 @@ class Hyperpwn {
   }
 
   cleanData() {
-    Object.keys(this.records).forEach(uid => {
+    this.uids().forEach(uid => {
       const {name} = this.records[uid]
       this.records[uid] = []
       this.records[uid].name = name
@@ -119,7 +128,7 @@ class Hyperpwn {
   }
 
   loadLayout(name) {
-    if (Object.keys(this.records).length === 0) {
+    if (this.uids().length === 0) {
       const cfgName = `hyperpwn-${name}.yml`
       const cfgPath = resolve(homedir(), '.hyperinator', cfgName)
       copySync(resolve(__dirname, 'cfgs', cfgName), cfgPath, {overwrite: false})
@@ -144,7 +153,7 @@ class Hyperpwn {
   }
 
   replay() {
-    Object.keys(this.records).forEach(uid => {
+    this.uids().forEach(uid => {
       const {cols} = this.store.getState().sessions.sessions[uid]
       this.replayUid(uid, cols)
     })
@@ -170,6 +179,17 @@ class Hyperpwn {
       this.replay()
     }
   }
+
+  sendCmd(cmd) {
+    return () => {
+      if (this.mainUid) {
+        window.rpc.emit('data', {
+          uid: hyperpwn.mainUid,
+          data: '\b'.repeat(1000) + cmd + '\n'
+        })
+      }
+    }
+  }
 }
 
 exports.middleware = store => next => action => {
@@ -181,9 +201,28 @@ exports.middleware = store => next => action => {
     }
   }
 
+  if (type === 'SESSION_USER_DATA') {
+    const {activeUid} = store.getState().sessions
+    if (hyperpwn.uids().includes(activeUid)) {
+      window.rpc.emit('data', {
+        uid: hyperpwn.mainUid,
+        data: action.data
+      })
+      store.dispatch({
+        type: 'SESSION_SET_ACTIVE',
+        uid: hyperpwn.mainUid
+      })
+      return
+    }
+  }
+
   if (type === 'SESSION_PTY_DATA') {
     let {data, uid} = action
     const strippedData = stripAnsi(data)
+    if (strippedData.includes('gdb-peda')) {
+      config.autoClean = false
+      hyperpwn.initSession(store, uid, 'peda')
+    }
     if (strippedData.includes('GEF for linux ready')) {
       hyperpwn.initSession(store, uid, 'gef')
     }
@@ -208,7 +247,7 @@ exports.middleware = store => next => action => {
     }
 
     if (legendFix) {
-      data = data.substr(2)
+      data = data.slice(2)
       legendFix = false
     }
 
@@ -217,35 +256,36 @@ exports.middleware = store => next => action => {
       contextData += data
     }
 
-    const legend = /^(\[ )?legend: (.*?)\]?$/im.exec(data)
+    const legend = /^(?:\u001B\[[^m]*m)*(?:\[ )?legend: (.*?)\]?$/im.exec(data)
     if (legend) {
       contextStart = true
-      hyperpwn.addLegend(legend[2])
-      action.data = data.substr(0, legend.index)
-      contextData = data.substr(legend.index + legend[0].length)
+      hyperpwn.addLegend(legend[0])
+      action.data = data.slice(0, legend.index)
+      contextData = data.slice(legend.index + legend[0].length)
       if (contextData.length > 0) {
-        contextData = contextData.substr(2)
+        contextData = contextData.slice(2)
       } else {
         legendFix = true
       }
     }
 
     if (contextStart && contextData.length > 0) {
-      const firstTitle = /^(\u001B\[[^m]*m)*─/.exec(contextData)
+      const firstTitle = /^(?:\u001B\[[^m]*m)*\[?[-─]/.exec(contextData)
       if (!firstTitle) {
         contextStart = false
         action.data += contextData
         contextData = ''
       }
 
-      const end = /\r\n(\u001B\[[^m]*m)*─+(\u001B\[[^m]*m)*\r\n/.exec(contextData)
+      const end = /\r\n(?:\u001B\[[^m]*m)*\[?[-─]+\]?(?:\u001B\[[^m]*m)*\r\n/.exec(contextData)
       if (end) {
         let endDisp = false
         let dataAdded = false
         contextStart = false
-        const tailData = contextData.substr(end.index + end[0].length)
-        contextData = contextData.substr(0, end.index + 2)
-        const parts = contextData.split(/(^.*─.*$)/mg).slice(1)
+        const tailData = contextData.slice(end.index + end[0].length)
+        contextData = contextData.slice(0, end.index + 2)
+        const partRegex = /^((?:\u001B\[[^m]*m)*\[?[-─]+.*[-─]+\]?(?:\u001B\[[^m]*m)*)$/mg
+        const parts = contextData.split(partRegex).slice(1)
         for (let i = 0; i < parts.length; i += 2) {
           if (hyperpwn.addData(uid, parts[i], parts[i + 1].slice(2, -2))) {
             dataAdded = true
@@ -260,7 +300,7 @@ exports.middleware = store => next => action => {
         hyperpwn.replayLast()
 
         if (endDisp) {
-          action.data += end[0].substr(2)
+          action.data += end[0].slice(2)
         }
         action.data += tailData
       }
@@ -293,6 +333,9 @@ exports.decorateKeymaps = keymaps => {
     'pwn:replayprev': config.hotkeys.prev,
     'pwn:replaynext': config.hotkeys.next
   }
+  for (const [k, v] of Object.entries(config.hotkeys.cmd)) {
+    newKeymaps['pwn:cmd:' + k] = v
+  }
   return Object.assign({}, keymaps, newKeymaps)
 }
 
@@ -313,10 +356,14 @@ exports.decorateTerms = (Terms, {React}) => {
       }
 
       if (this.terms) {
-        terms.registerCommands({
+        const commands = {
           'pwn:replayprev': hyperpwn.replayPrev,
           'pwn:replaynext': hyperpwn.replayNext
+        }
+        Object.keys(config.hotkeys.cmd).forEach(cmd => {
+          commands['pwn:cmd:' + cmd] = hyperpwn.sendCmd(cmd)
         })
+        terms.registerCommands(commands)
       }
     }
 

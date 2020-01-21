@@ -1,0 +1,19 @@
+session_name: peda
+global_options:
+  default-shell: /bin/sleep
+  default-shell-args: infinity
+windows:
+- layout: 9a99,237x62,0,0{141x62,0,0[141x23,0,0,6,141x19,0,24,8,141x14,0,44,9,141x3,0,59,12],95x62,142,0,7}
+  panes:
+  - shell_command:
+    - hyperpwn code
+  - shell_command:
+    -
+    reuse: True
+    focus: True
+  - shell_command:
+    - hyperpwn stack
+  - shell_command:
+    - hyperpwn legend
+  - shell_command:
+    - hyperpwn reg
