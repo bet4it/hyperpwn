@@ -217,7 +217,9 @@ exports.middleware = store => next => action => {
   }
 
   if (type === 'SESSION_PTY_DATA') {
-    let {data, uid} = action
+    const {uid} = action
+    let data = action.data.replace(/\u0007{2,}/, '')
+    action.data = data
     const strippedData = stripAnsi(data)
     if (strippedData.includes('PEDA loaded')) {
       hyperpwn.initSession(store, uid, 'peda')
@@ -303,9 +305,9 @@ exports.middleware = store => next => action => {
         }
         action.data += tailData
       }
-      if (!action.data) {
-        return
-      }
+    }
+    if (!action.data) {
+      return
     }
   }
 
