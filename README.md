@@ -7,6 +7,8 @@ Hyperpwn is a [Hyper](https://hyper.is) plugin to improve the display when debug
 Hyperpwn needs [GEF](https://github.com/hugsy/gef), [pwndbg](https://github.com/pwndbg/pwndbg) or [peda](https://github.com/bet4it/peda) to be loaded in GDB as a backend.
 Hyperpwn handles with its context data, seperates them to different windows to get a clearer display and can easily replay previous states.
 
+Hyperpwn can be used on Linux and macOS.
+
 * Use hyperpwn on GEF. Theme: [hyper-chesterish](https://github.com/henrikdahl/hyper-chesterish):
 ![](https://user-images.githubusercontent.com/16643669/61991945-25f06e00-b08a-11e9-95b2-a9eb32e0bfad.gif)
 

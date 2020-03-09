@@ -1,7 +1,7 @@
 session_name: peda
 global_options:
   default-shell: /bin/sleep
-  default-shell-args: infinity
+  default-shell-args: 100000000
 windows:
 - layout: 9a99,237x62,0,0{141x62,0,0[141x25,0,0,6,141x19,0,26,8,141x12,0,46,9,141x3,0,59,12],95x62,142,0,7}
   panes:
