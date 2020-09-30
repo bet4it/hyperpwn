@@ -1,6 +1,6 @@
 {
   "name": "hyperpwn",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "A hyper plugin to provide GDB with a flexible GUI",
   "repository": "bet4it/hyperpwn",
   "author": "Bet4 <0xbet4@gmail.com>",

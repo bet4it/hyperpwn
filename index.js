@@ -69,7 +69,7 @@ class Hyperpwn {
 
   addData(uid, title, data) {
     return this.uids().some(uid => {
-      if (title.includes(this.records[uid].name)) {
+      if (title.toLowerCase().includes(this.records[uid].name.toLowerCase())) {
         this.records[uid].push(data)
         return true
       }
@@ -221,7 +221,7 @@ exports.middleware = store => next => action => {
     let data = action.data.replace(/\u0007{2,}/, '')
     action.data = data
     const strippedData = stripAnsi(data)
-    if (strippedData.includes('PEDA loaded')) {
+    if (strippedData.includes('Init PEDA')) {
       hyperpwn.initSession(store, uid, 'peda')
     }
     if (strippedData.includes('GEF for linux ready')) {
