@@ -67,7 +67,7 @@ class Hyperpwn {
     }
   }
 
-  addData(uid, title, data) {
+  addData(title, data) {
     return this.uids().some(uid => {
       if (title.toLowerCase().includes(this.records[uid].name.toLowerCase())) {
         this.records[uid].push(data)
@@ -257,7 +257,7 @@ exports.middleware = store => next => action => {
       contextData += data
     }
 
-    const legend = /^(?:\u001B\[[^m]*m)*(?:\[ )?legend: (.*?)\]?$/im.exec(data)
+    const legend = /(?:\[ )?legend: (.*?)\]?$/gim.exec(data)
     if (legend) {
       contextStart = true
       hyperpwn.addLegend(legend[0])
@@ -284,11 +284,11 @@ exports.middleware = store => next => action => {
         let dataAdded = false
         contextStart = false
         const tailData = contextData.slice(end.index + end[0].length)
-        contextData = contextData.slice(0, end.index + 2)
         const partRegex = /^((?:\u001B\[[^m]*m)*\[?[-─]+.*[-─]+\]?(?:\u001B\[[^m]*m)*)$/mg
-        const parts = contextData.split(partRegex).slice(1)
+        const parts = contextData.slice(0, end.index + 2).split(partRegex).slice(1)
+        contextData = ''
         for (let i = 0; i < parts.length; i += 2) {
-          if (hyperpwn.addData(uid, parts[i], parts[i + 1].slice(2, -2))) {
+          if (hyperpwn.addData(parts[i], parts[i + 1].slice(2, -2))) {
             dataAdded = true
           } else {
             action.data += parts[i] + parts[i + 1]
@@ -303,7 +303,13 @@ exports.middleware = store => next => action => {
         if (endDisp) {
           action.data += end[0].slice(2)
         }
-        action.data += tailData
+        setTimeout(() => {
+          store.dispatch({
+            type: 'SESSION_PTY_DATA',
+            uid: hyperpwn.mainUid,
+            data: tailData
+          })
+        }, 0)
       }
     }
     if (!action.data) {
