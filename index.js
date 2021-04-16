@@ -1,6 +1,6 @@
 const {homedir} = require('os')
-const {resolve} = require('path')
 const {copySync} = require('fs-extra')
+const path = require('path')
 const merge = require('lodash.merge')
 const stripAnsi = require('strip-ansi')
 const expandTabs = require('expandtabs')
@@ -78,20 +78,20 @@ class Hyperpwn {
   }
 
   alignData() {
-    this.uids().forEach(uid => {
+    for (const uid of this.uids()) {
       if (this.records[uid].length === this.recordLen) {
         this.records[uid].push('')
       }
-    })
+    }
     this.recordLen += 1
   }
 
   cleanData() {
-    this.uids().forEach(uid => {
+    for (const uid of this.uids()) {
       const {name} = this.records[uid]
       this.records[uid] = []
       this.records[uid].name = name
-    })
+    }
     this.index = null
     this.recordLen = 0
   }
@@ -130,8 +130,8 @@ class Hyperpwn {
   loadLayout(name) {
     if (this.uids().length === 0) {
       const cfgName = `hyperpwn-${name}.yml`
-      const cfgPath = resolve(homedir(), '.hyperinator', cfgName)
-      copySync(resolve(__dirname, 'cfgs', cfgName), cfgPath, {overwrite: false})
+      const cfgPath = path.resolve(homedir(), '.hyperinator', cfgName)
+      copySync(path.resolve(__dirname, 'cfgs', cfgName), cfgPath, {overwrite: false})
       this.store.dispatch({
         type: 'HYPERINATOR_LOAD',
         data: cfgPath
@@ -142,7 +142,7 @@ class Hyperpwn {
   replayUid(uid, cols) {
     if (uid in this.records && Number.isInteger(this.index)) {
       let data = this.records[uid][this.index]
-      data = data.replace(/^.*$/mg, line => cliTruncate(expandTabs(line), cols))
+      data = data.replace(/^.*$/gm, line => cliTruncate(expandTabs(line), cols))
       data = ansiEscapes.clearTerminal + data
       this.store.dispatch({
         type: 'SESSION_PTY_DATA',
@@ -153,10 +153,10 @@ class Hyperpwn {
   }
 
   replay() {
-    this.uids().forEach(uid => {
+    for (const uid of this.uids()) {
       const {cols} = this.store.getState().sessions.sessions[uid]
       this.replayUid(uid, cols)
-    })
+    }
   }
 
   replayPrev() {
@@ -195,10 +195,8 @@ class Hyperpwn {
 exports.middleware = store => next => action => {
   const {type} = action
 
-  if (type === 'CONFIG_LOAD' || type === 'CONFIG_RELOAD') {
-    if (action.config.hyperpwn) {
-      config = merge(JSON.parse(JSON.stringify(defaultConfig)), action.config.hyperpwn)
-    }
+  if ((type === 'CONFIG_LOAD' || type === 'CONFIG_RELOAD') && action.config.hyperpwn) {
+    config = merge(JSON.parse(JSON.stringify(defaultConfig)), action.config.hyperpwn)
   }
 
   if (type === 'SESSION_USER_DATA') {
@@ -257,7 +255,7 @@ exports.middleware = store => next => action => {
       contextData += data
     }
 
-    const legend = /(?:\[ )?legend: (.*?)\]?$/gim.exec(data)
+    const legend = /(?:\[ )?legend: (.*?)]?$/gim.exec(data)
     if (legend) {
       contextStart = true
       hyperpwn.addLegend(legend[0])
@@ -278,13 +276,14 @@ exports.middleware = store => next => action => {
         contextData = ''
       }
 
-      const end = /\r\n(?:\u001B\[[^m]*m)*\[?[-─]+\]?(?:\u001B\[[^m]*m)*\r\n/.exec(contextData)
+      const end = /\r\n(?:\u001B\[[^m]*m)*\[?[-─]+]?(?:\u001B\[[^m]*m)*\r\n/.exec(contextData)
       if (end) {
         let endDisp = false
         let dataAdded = false
         contextStart = false
         const tailData = contextData.slice(end.index + end[0].length)
-        const partRegex = /^((?:\u001B\[[^m]*m)*\[?[-─]+.*[-─]+\]?(?:\u001B\[[^m]*m)*)$/mg
+        const partRegex = /^((?:\u001B\[[^m]*m)*\[?[-─]+.*[-─]+]?(?:\u001B\[[^m]*m)*)$/gm
+        console.log(contextData.slice(0, end.index + 2))
         const parts = contextData.slice(0, end.index + 2).split(partRegex).slice(1)
         contextData = ''
         for (let i = 0; i < parts.length; i += 2) {
@@ -367,9 +366,9 @@ exports.decorateTerms = (Terms, {React}) => {
           'pwn:replayprev': hyperpwn.replayPrev,
           'pwn:replaynext': hyperpwn.replayNext
         }
-        Object.keys(config.hotkeys.cmd).forEach(cmd => {
+        for (const cmd of Object.keys(config.hotkeys.cmd)) {
           commands['pwn:cmd:' + cmd] = hyperpwn.sendCmd(cmd)
-        })
+        }
         terms.registerCommands(commands)
       }
     }
@@ -408,7 +407,7 @@ exports.decorateTerm = (Term, {React}) => {
         header
       )
       const customChildrenBefore = this.props.customChildrenBefore ?
-        new Array(this.props.customChildrenBefore).concat(myCustomChildrenBefore) :
+        [this.props.customChildrenBefore].concat(myCustomChildrenBefore) :
         myCustomChildrenBefore
       props.customChildrenBefore = customChildrenBefore
       return React.createElement(Term, Object.assign({}, this.props, props))

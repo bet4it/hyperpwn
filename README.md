@@ -18,7 +18,7 @@ Hyperpwn can be used on Linux and macOS.
 * If you want to use hyperpwn together with other tools such as pwntools and VS Code, you can check for [this tutorial](https://github.com/bet4it/build-an-efficient-pwn-environment)
 
 # Install
-Firstly, you need to [install Hyper](https://hyper.is/#installation) on your computer.
+Firstly, you need to install [latest canary version of Hyper](https://releases-canary.hyper.is/) on your computer.
 
 Hyperpwn relies on [hyperinator](https://github.com/bet4it/hyperinator). You need to install both `hyperinator` and `hyperpwn` plugins to use hyperpwn.
 
@@ -78,7 +78,6 @@ module.exports = {
 ```
 
 # Notice
-* If you encounter any weird display bugs during using Hyper or hyperpwn, try to upgrade Hyper to [v3.1.0-canary.4](https://github.com/zeit/hyper/releases/tag/v3.1.0-canary.4).
 * If you want to use hyperpwn on pwndbg, make sure you have installed the git version of pwndbg, or you must backport [this patch](https://github.com/pwndbg/pwndbg/commit/97c5ccb4197e6cb0042740a7bf378d4104a79717.patch).
 * If you want to use hyperpwn on peda, please use my fork of [peda](https://github.com/bet4it/peda) or [peda-arm](https://github.com/bet4it/peda-arm).
 * Make sure you have enabled the display of `legend` in the backend (which is the default behavior).
