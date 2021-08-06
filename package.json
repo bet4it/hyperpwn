@@ -1,6 +1,6 @@
 {
   "name": "hyperpwn",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "A hyper plugin to provide GDB with a flexible GUI",
   "repository": "bet4it/hyperpwn",
   "author": "Bet4 <0xbet4@gmail.com>",
@@ -39,13 +39,13 @@
     ]
   },
   "devDependencies": {
-    "xo": "^0.38.2"
+    "xo": "^0.39.1"
   },
   "dependencies": {
-    "ansi-escapes": "^4.3.2",
+    "ansi-escapes": "^5.0.0",
     "cli-truncate": "^2.1.0",
     "expandtabs": "^1.0.0",
-    "fs-extra": "^9.1.0",
+    "fs-extra": "^10.0.0",
     "lodash.merge": "^4.6.2",
     "strip-ansi": "^6.0.0"
   }

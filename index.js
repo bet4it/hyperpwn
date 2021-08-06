@@ -222,7 +222,7 @@ exports.middleware = store => next => action => {
     if (strippedData.includes('Init PEDA')) {
       hyperpwn.initSession(store, uid, 'peda')
     }
-    if (strippedData.includes('GEF for linux ready')) {
+    if (/GEF for (linux|darwin) ready/.test(strippedData)) {
       hyperpwn.initSession(store, uid, 'gef')
     }
     if (strippedData.includes('pwndbg: loaded ')) {
