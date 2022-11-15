@@ -7,6 +7,8 @@ Hyperpwn is a [Hyper](https://hyper.is) plugin to improve the display when debug
 Hyperpwn needs [GEF](https://github.com/hugsy/gef), [pwndbg](https://github.com/pwndbg/pwndbg) or [peda](https://github.com/bet4it/peda) to be loaded in GDB as a backend.
 Hyperpwn handles with its context data, seperates them to different windows to get a clearer display and can easily replay previous states.
 
+Hyperpwn can be used on Linux and macOS.
+
 * Use hyperpwn on GEF. Theme: [hyper-chesterish](https://github.com/henrikdahl/hyper-chesterish):
 ![](https://user-images.githubusercontent.com/16643669/61991945-25f06e00-b08a-11e9-95b2-a9eb32e0bfad.gif)
 
@@ -16,7 +18,7 @@ Hyperpwn handles with its context data, seperates them to different windows to g
 * If you want to use hyperpwn together with other tools such as pwntools and VS Code, you can check for [this tutorial](https://github.com/bet4it/build-an-efficient-pwn-environment)
 
 # Install
-Firstly, you need to [install Hyper](https://hyper.is/#installation) on your computer.
+Firstly, you need to [install the latest release of Hyper](https://hyper.is/#installation) on your computer.
 
 Hyperpwn relies on [hyperinator](https://github.com/bet4it/hyperinator). You need to install both `hyperinator` and `hyperpwn` plugins to use hyperpwn.
 
@@ -76,8 +78,6 @@ module.exports = {
 ```
 
 # Notice
-* If you encounter any weird display bugs during using Hyper or hyperpwn, try to downgrade Hyper to [v2.1.2](https://github.com/zeit/hyper/releases/tag/2.1.2).
-* If you want to use hyperpwn on pwndbg, make sure you have installed the git version of pwndbg, or you must backport [this patch](https://github.com/pwndbg/pwndbg/commit/97c5ccb4197e6cb0042740a7bf378d4104a79717.patch).
-* If you want to use hyperpwn on peda, please use [my fork of peda](https://github.com/bet4it/peda).
+* If you want to use hyperpwn on peda, please use my fork of [peda](https://github.com/bet4it/peda) or [peda-arm](https://github.com/bet4it/peda-arm).
 * Make sure you have enabled the display of `legend` in the backend (which is the default behavior).
 * You can try to change configs like `context.nb_lines_code`, `context.nb_lines_code_prev` in GEF, or `context-code-lines` in pwndbg, to get a better display.

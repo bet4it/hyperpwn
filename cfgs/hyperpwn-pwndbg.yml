@@ -1,7 +1,7 @@
 session_name: pwndbg
 global_options:
   default-shell: /bin/sleep
-  default-shell-args: infinity
+  default-shell-args: 100000000
 windows:
 - layout: ea21,237x62,0,0{139x62,0,0[139x34,0,0,1,139x8,0,35,2,139x18,0,44,3],97x62,140,0[97x35,140,0,4,97x4,140,36,6,97x21,140,41,5]}
   panes:
