@@ -1,6 +1,7 @@
 const {homedir} = require('os')
-const {copySync} = require('fs-extra')
+const fs = require('fs-extra')
 const path = require('path')
+const yaml = require('js-yaml')
 const merge = require('lodash.merge')
 const stripAnsi = require('strip-ansi')
 const expandTabs = require('expandtabs')
@@ -32,6 +33,22 @@ const defaultConfig = {
   }
 }
 
+const defaultShell =
+{
+  win32: {
+    'default-shell': 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+    'default-shell-args': '& {Clear-Host; While($true) {Read-Host | Out-Null}}'
+  },
+  linux: {
+    'default-shell': '/bin/sleep',
+    'default-shell-args': 'infinity'
+  },
+  darwin: {
+    'default-shell': '/bin/sleep',
+    'default-shell-args': '100000000'
+  }
+}
+
 let config = defaultConfig
 
 class Hyperpwn {
@@ -51,7 +68,9 @@ class Hyperpwn {
   }
 
   addUid(uid, name) {
-    this.records[uid] = []
+    if (!this.records.hasOwnProperty(uid)) {
+      this.records[uid] = []
+    }
     this.records[uid].name = name
   }
 
@@ -119,7 +138,8 @@ class Hyperpwn {
   initSession(store, uid, backend) {
     this.store = store
     this.mainUid = uid
-    if (config.autoLayout) {
+    const {termGroups} = store.getState().termGroups
+    if (config.autoLayout && Object.keys(termGroups).length === 1) {
       this.loadLayout(backend)
     }
     if (config.autoClean) {
@@ -131,7 +151,13 @@ class Hyperpwn {
     if (this.uids().length === 0) {
       const cfgName = `hyperpwn-${name}.yml`
       const cfgPath = path.resolve(homedir(), '.hyperinator', cfgName)
-      copySync(path.resolve(__dirname, 'cfgs', cfgName), cfgPath, {overwrite: false})
+      const libPath = path.resolve(__dirname, 'cfgs', cfgName)
+      if (!fs.existsSync(cfgPath)) {
+        const cfg = yaml.load(fs.readFileSync(libPath, 'utf8'))
+        cfg['global_options'] = defaultShell[process.platform]
+        fs.outputFileSync(cfgPath, yaml.dump(cfg))
+      }
+
       this.store.dispatch({
         type: 'HYPERINATOR_LOAD',
         data: cfgPath
@@ -229,7 +255,7 @@ exports.middleware = store => next => action => {
       hyperpwn.initSession(store, uid, 'pwndbg')
     }
 
-    const view = /^ hyperpwn (.*)\r\n\r\n$/.exec(data)
+    const view = /^.* hyperpwn (.*)[\r\n]+$/.exec(strippedData)
     if (view) {
       if (view[1].toLowerCase() === 'legend') {
         hyperpwn.legend.uid = uid
@@ -269,6 +295,7 @@ exports.middleware = store => next => action => {
     }
 
     if (contextStart && contextData.length > 0) {
+      contextData = contextData.replace(/\r((?:\u001B\[[^m]*m)*)\n/g, '$1\r\n')
       const firstTitle = /^(?:\u001B\[[^m]*m)*\[?[-─]/.exec(contextData)
       if (!firstTitle) {
         contextStart = false
@@ -276,14 +303,13 @@ exports.middleware = store => next => action => {
         contextData = ''
       }
 
-      const end = /\r\n(?:\u001B\[[^m]*m)*\[?[-─]+]?(?:\u001B\[[^m]*m)*\r\n/.exec(contextData)
+      const end = /\r\n(?:\u001B\[[^m]*m)*\[?[-─]+(?:\u001B\[[^m]*m)*[-─]+]?(?:\u001B\[[^m]*m)*\r\n/.exec(contextData)
       if (end) {
         let endDisp = false
         let dataAdded = false
         contextStart = false
         const tailData = contextData.slice(end.index + end[0].length)
         const partRegex = /^((?:\u001B\[[^m]*m)*\[?[-─]+.*[-─]+]?(?:\u001B\[[^m]*m)*)$/gm
-        console.log(contextData.slice(0, end.index + 2))
         const parts = contextData.slice(0, end.index + 2).split(partRegex).slice(1)
         contextData = ''
         for (let i = 0; i < parts.length; i += 2) {
